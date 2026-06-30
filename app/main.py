@@ -12,7 +12,7 @@ and make the codebase easy to navigate during a code review or interview.
 """
 
 from fastapi import FastAPI
-from app.routes import health, analyze, keywords
+from app.routes import health, analyze, keywords, summarize
 
 app = FastAPI(
     title="NLP Text Analysis API",
@@ -26,3 +26,4 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(analyze.router)
 app.include_router(keywords.router)
+app.include_router(summarize.router)

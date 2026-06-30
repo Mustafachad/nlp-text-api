@@ -1,13 +1,8 @@
-import spacy
 from fastapi import APIRouter
 from app.models import TextRequest, KeywordsResponse, Entity
+from app.nlp import nlp
 
 router = APIRouter()
-
-# Load the model once when the module is imported, not on every request.
-# en_core_web_sm is a small English pipeline that includes a tokeniser,
-# POS tagger, dependency parser, and NER model trained on web text.
-nlp = spacy.load("en_core_web_sm")
 
 # Entity types we care about for a general-purpose keywords endpoint.
 # Full label list: https://spacy.io/api/annotation#named-entities
