@@ -1,0 +1,141 @@
+# NLP Text Analysis API
+
+A REST API that performs natural language processing on text input. Built with FastAPI and spaCy as a portfolio project connecting an Applied Linguistics background to practical software engineering.
+
+## Features
+
+| Endpoint | What it does |
+|---|---|
+| `GET /health` | Service liveness check — status and version |
+| `POST /analyze` | Sentiment (polarity + subjectivity), Flesch readability score, word count, sentence count |
+| `POST /keywords` | Frequency-ranked keywords via POS tagging, named entity recognition (people, places, organisations) |
+| `POST /summarize` | Extractive summary — top-ranked sentences returned in original order |
+
+## Tech Stack
+
+- **FastAPI** — API framework with automatic request validation and interactive docs
+- **spaCy** (`en_core_web_sm`) — POS tagging, dependency parsing, named entity recognition
+- **TextBlob** — sentiment analysis (polarity and subjectivity scoring)
+- **textstat** — Flesch Reading Ease score
+- **Pydantic** — request/response schema validation
+- **Uvicorn** — ASGI server
+
+## Project Structure
+
+```
+nlp-text-api/
+├── app/
+│   ├── main.py          # FastAPI app setup, router registration
+│   ├── nlp.py           # Shared spaCy model instance (loaded once)
+│   ├── models.py        # Pydantic request/response schemas
+│   └── routes/
+│       ├── health.py    # GET  /health
+│       ├── analyze.py   # POST /analyze
+│       ├── keywords.py  # POST /keywords
+│       └── summarize.py # POST /summarize
+├── requirements.txt
+└── .gitignore
+```
+
+## Setup
+
+**Prerequisites:** Python 3.8+, Git
+
+```bash
+# Clone the repo
+git clone https://github.com/Mustafachad/nlp-text-api.git
+cd nlp-text-api
+
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate      # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Download the spaCy English model
+python -m spacy download en_core_web_sm
+```
+
+## Running the API
+
+```bash
+source venv/bin/activate
+uvicorn app.main:app --reload
+```
+
+The server starts at `http://127.0.0.1:8000`.
+
+Interactive API docs (Swagger UI) are auto-generated at `http://127.0.0.1:8000/docs`.
+
+## Example Requests
+
+### `POST /analyze`
+
+```bash
+curl -X POST http://127.0.0.1:8000/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"text": "FastAPI is a brilliant framework. Building APIs has never felt this clean."}'
+```
+
+```json
+{
+  "word_count": 14,
+  "sentence_count": 2,
+  "sentiment": {
+    "polarity": 0.525,
+    "subjectivity": 0.65,
+    "label": "positive"
+  },
+  "flesch_reading_ease": 58.3,
+  "reading_level": "Fairly Difficult"
+}
+```
+
+### `POST /keywords`
+
+```bash
+curl -X POST http://127.0.0.1:8000/keywords \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Elon Musk founded SpaceX in California to reduce the cost of space transportation."}'
+```
+
+```json
+{
+  "keywords": ["musk", "california", "cost", "space", "transportation"],
+  "entities": [
+    {"text": "Elon Musk", "label": "PERSON"},
+    {"text": "California", "label": "GPE"}
+  ]
+}
+```
+
+### `POST /summarize`
+
+```bash
+curl -X POST http://127.0.0.1:8000/summarize \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Natural language processing is a subfield of linguistics and AI. It focuses on the interaction between computers and human language. NLP tasks include sentiment analysis, machine translation, and summarisation. Modern systems use neural networks trained on massive corpora."}'
+```
+
+```json
+{
+  "summary": "NLP tasks include sentiment analysis, machine translation, and summarisation.",
+  "sentence_count_original": 4,
+  "sentence_count_summary": 1
+}
+```
+
+## How It Works
+
+**Sentiment** — TextBlob assigns a polarity score from -1.0 (negative) to 1.0 (positive) and a subjectivity score from 0.0 (objective) to 1.0 (subjective) using a lexicon-based approach.
+
+**Readability** — The Flesch Reading Ease formula (`206.835 - 1.015×(words/sentences) - 84.6×(syllables/words)`) rewards shorter words and shorter sentences with a higher score. Scores above 60 are considered plain English.
+
+**Keywords** — spaCy's POS tagger identifies nouns and proper nouns. Stop words are filtered out and tokens are lemmatised (`"APIs" → "api"`) before frequency ranking, so surface form variation doesn't split counts.
+
+**Summarisation** — Each sentence is scored by summing the normalised frequencies of its content words. The top-ranked sentences (roughly one-third of the original, capped at 7) are returned in their original order so the summary reads naturally. This is *extractive* summarisation — no text is generated, only selected.
+
+## Related Projects
+
+- [Raspberry Pi Crypto Data Pipeline](https://github.com/Mustafachad) — real-time cryptocurrency data collection using Python, PostgreSQL, Grafana, and cron on a Raspberry Pi.
