@@ -17,7 +17,9 @@ class TextRequest(BaseModel):
     text: str = Field(
         ...,
         min_length=1,
-        description="The text to analyse.",
+        max_length=20_000,
+        description="The text to analyse. Limited to 20,000 characters so a "
+        "single oversized request can't tie up a worker running spaCy.",
         examples=["FastAPI makes building APIs surprisingly enjoyable."],
     )
 
