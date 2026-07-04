@@ -24,11 +24,13 @@ def summarize_text(request: TextRequest):
     Summary length: roughly one-third of the original sentence count,
     clamped to a minimum of 1 and a maximum of 7 sentences.
     """
-    doc = nlp(request.text)
-    sentences = list(doc.sents)
+    text = request.text.strip()
 
-    if len(sentences) == 0:
-        raise HTTPException(status_code=422, detail="No sentences found in text.")
+    if not text:
+        raise HTTPException(status_code=422, detail="Text must not be empty.")
+
+    doc = nlp(text)
+    sentences = list(doc.sents)
 
     # Single-sentence input: nothing to summarise, return as-is.
     if len(sentences) == 1:
@@ -52,7 +54,7 @@ def summarize_text(request: TextRequest):
     if not freq:
         # Edge case: text is entirely stop words / punctuation.
         return SummarizeResponse(
-            summary=request.text.strip(),
+            summary=text,
             sentence_count_original=len(sentences),
             sentence_count_summary=len(sentences),
         )

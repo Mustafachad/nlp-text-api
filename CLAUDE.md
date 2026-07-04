@@ -47,8 +47,5 @@ endpoints in parallel. Swagger stays at `/docs`.
 
 ## Known gaps (good candidate tasks)
 
-- No tests.
-- No max length limit on TextRequest.text — large inputs tie up a worker.
-- No CI workflow.
 - README's project-structure section is out of date (missing Dockerfile and
   `app/static/`).
