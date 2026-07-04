@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NLP Text Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ------------------------------------------------------------------
+     Design tokens — change the whole look from here.
+     ------------------------------------------------------------------ */
+  :root {
+    --paper:     #F7F5EF;   /* page background, warm paper           */
+    --card:      #FFFFFF;   /* panels                                */
+    --ink:       #24251F;   /* primary text                          */
+    --muted:     #7C796C;   /* secondary text                        */
+    --rule:      #E2DFD2;   /* hairlines and borders                 */
+    --highlight: #FFE168;   /* highlighter — entity marks            */
+    --pine:      #33604F;   /* primary action, links                 */
+    --pine-dark: #274C3E;   /* hover                                 */
+    --neg:       #B0402C;   /* negative sentiment                    */
+    --serif: "Newsreader", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* --- Dictionary-headword header ----------------------------------- */
+  header { border-bottom: 1px solid var(--rule); padding-bottom: 20px; margin-bottom: 32px; }
+  .headword { font-family: var(--serif); font-size: 42px; font-weight: 600; letter-spacing: -0.5px; }
+  .pron { font-family: var(--serif); font-style: italic; font-size: 20px; color: var(--muted); margin-left: 10px; }
+  .pos-tag { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--pine); margin-left: 6px; }
+  .definition { color: var(--muted); margin-top: 6px; max-width: 62ch; }
+  .definition a { color: var(--pine); }
+
+  /* --- Two-column workbench ----------------------------------------- */
+  .workbench { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 900px) { .workbench { grid-template-columns: 1fr; } }
+
+  .panel-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  /* --- Input side ---------------------------------------------------- */
+  textarea {
+    width: 100%; min-height: 320px; resize: vertical;
+    background: var(--card); color: var(--ink);
+    border: 1px solid var(--rule); border-radius: 10px;
+    padding: 20px; font-family: var(--serif); font-size: 17px; line-height: 1.7;
+  }
+  textarea:focus { outline: 2px solid var(--pine); outline-offset: 1px; border-color: transparent; }
+  textarea::placeholder { color: var(--muted); font-style: italic; }
+
+  .controls { display: flex; gap: 12px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+
+  button.primary {
+    background: var(--pine); color: #fff; border: none; border-radius: 8px;
+    padding: 10px 22px; font-family: var(--sans); font-size: 15px; font-weight: 600;
+    cursor: pointer;
+  }
+  button.primary:hover { background: var(--pine-dark); }
+  button.primary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  button.primary:disabled { opacity: 0.55; cursor: wait; }
+
+  button.ghost {
+    background: none; border: none; color: var(--pine); font-size: 14px;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+    font-family: var(--sans); padding: 6px 2px;
+  }
+  button.ghost:hover { color: var(--pine-dark); }
+
+  .hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  .error {
+    display: none; margin-top: 14px; padding: 12px 16px; border-radius: 8px;
+    background: #FAEDE9; border: 1px solid #E8C4B8; color: var(--neg); font-size: 14px;
+  }
+  .error.show { display: block; }
+
+  /* --- Results side --------------------------------------------------- */
+  .card {
+    background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+    padding: 20px; margin-bottom: 18px;
+  }
+
+  .empty-state {
+    border: 1px dashed var(--rule); border-radius: 10px; padding: 48px 24px;
+    text-align: center; color: var(--muted); font-family: var(--serif);
+    font-style: italic; font-size: 17px;
+  }
+
+  #results { display: none; }
+  #results.show { display: block; }
+
+  /* Stats row */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stat .num { font-family: var(--mono); font-size: 26px; font-weight: 500; }
+  .stat .lbl { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+  .stat .sub { font-size: 13px; color: var(--muted); }
+
+  /* Sentiment scale */
+  .scale-track { position: relative; height: 6px; border-radius: 3px; margin: 22px 0 6px;
+    background: linear-gradient(to right, var(--neg), var(--rule) 45%, var(--rule) 55%, var(--pine)); }
+  .scale-marker {
+    position: absolute; top: 50%; width: 16px; height: 16px; border-radius: 50%;
+    background: var(--ink); border: 3px solid var(--card);
+    transform: translate(-50%, -50%); box-shadow: 0 0 0 1px var(--rule);
+    transition: left 0.5s ease;
+  }
+  @media (prefers-reduced-motion: reduce) { .scale-marker { transition: none; } }
+  .scale-ends { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .sent-line { display: flex; align-items: baseline; gap: 10px; }
+  .sent-label { font-family: var(--serif); font-size: 22px; font-weight: 500; text-transform: capitalize; }
+  .sent-detail { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* Annotated text */
+  .annotated { font-family: var(--serif); font-size: 17px; line-height: 1.9; white-space: pre-wrap; }
+  .annotated mark {
+    background: var(--highlight); padding: 1px 3px; border-radius: 3px;
+  }
+  .annotated mark .ent-label {
+    font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: 0.05em;
+    color: var(--muted); vertical-align: super; margin-left: 2px; user-select: none;
+  }
+
+  /* Keyword chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--mono); font-size: 13px; padding: 4px 12px;
+    border: 1px solid var(--rule); border-radius: 999px; background: var(--paper);
+  }
+  .chip.top { border-color: var(--pine); color: var(--pine); font-weight: 500; }
+
+  /* Summary */
+  .summary-text {
+    font-family: var(--serif); font-size: 17px; line-height: 1.8;
+    border-left: 3px solid var(--highlight); padding-left: 16px;
+  }
+  .summary-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 10px; }
+
+  footer { margin-top: 48px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  footer a { color: var(--pine); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <span class="headword">analyse</span><span class="pron">/ˈæn.əl.aɪz/</span><span class="pos-tag">verb</span>
+    </div>
+    <p class="definition">
+      to examine text methodically: its sentiment, readability, keywords, named entities,
+      and essential sentences. Powered by the <a href="/docs">NLP Text Analysis API</a>.
+    </p>
+  </header>
+
+  <div class="workbench">
+
+    <!-- ============ LEFT: input ============ -->
+    <section>
+      <div class="panel-label">Source text</div>
+      <textarea id="text-input" placeholder="Paste or type text here — a paragraph, an article, an email…" spellcheck="false"></textarea>
+      <div class="controls">
+        <button class="primary" id="analyse-btn">Analyse text</button>
+        <button class="ghost" id="sample-btn">Try an example</button>
+        <span class="hint">Ctrl+Enter</span>
+      </div>
+      <div class="error" id="error-box" role="alert"></div>
+    </section>
+
+    <!-- ============ RIGHT: results ============ -->
+    <section>
+      <div class="panel-label">Analysis</div>
+
+      <div class="empty-state" id="empty-state">
+        Results appear here — three endpoints answer at once:<br>
+        /analyze, /keywords, and /summarize.
+      </div>
+
+      <div id="results">
+
+        <div class="card">
+          <div class="stats">
+            <div class="stat"><div class="num" id="stat-words">–</div><div class="lbl">words</div></div>
+            <div class="stat"><div class="num" id="stat-sents">–</div><div class="lbl">sentences</div></div>
+            <div class="stat">
+              <div class="num" id="stat-flesch">–</div>
+              <div class="lbl">reading ease</div>
+              <div class="sub" id="stat-level"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="panel-label">Sentiment</div>
+          <div class="sent-line">
+            <span class="sent-label" id="sent-label">–</span>
+            <span class="sent-detail" id="sent-detail"></span>
+          </div>
+          <div class="scale-track"><div class="scale-marker" id="scale-marker" style="left:50%"></div></div>
+          <div class="scale-ends"><span>−1 negative</span><span>0</span><span>+1 positive</span></div>
+        </div>
+
+        <div class="card">
+          <div class="panel-label">Your text, annotated</div>
+          <div class="annotated" id="annotated-text"></div>
+        </div>
+
+        <div class="card">
+          <div class="panel-label">Keywords</div>
+          <div class="chips" id="keyword-chips"></div>
+        </div>
+
+        <div class="card">
+          <div class="panel-label">Summary</div>
+          <div class="summary-text" id="summary-text"></div>
+          <div class="summary-meta" id="summary-meta"></div>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <footer>
+    Raw API docs at <a href="/docs">/docs</a> · FastAPI · spaCy · TextBlob
+  </footer>
+</div>
+
+<script>
+/* ---------------------------------------------------------------------
+   All logic lives here. The flow:
+     1. Read the textarea.
+     2. POST the same {"text": ...} body to /analyze, /keywords and
+        /summarize in parallel (Promise.all).
+     3. Render each response into its card.
+   --------------------------------------------------------------------- */
+
+const $ = (id) => document.getElementById(id);
+
+const SAMPLE_TEXT = "Marie Curie was a pioneering physicist and chemist who conducted groundbreaking research on radioactivity. Born in Warsaw in 1867, she moved to Paris to study at the Sorbonne, where she met her husband Pierre Curie. Together they discovered the elements polonium and radium. Curie became the first woman to win a Nobel Prize, and she remains the only person to win Nobel Prizes in two different sciences. Her work laid the foundation for modern cancer treatment. Despite facing discrimination as a woman in science, she persisted with remarkable determination. The Curie Institute in Paris continues her legacy of medical research today.";
+
+$("sample-btn").addEventListener("click", () => {
+  $("text-input").value = SAMPLE_TEXT;
+  $("text-input").focus();
+});
+
+$("analyse-btn").addEventListener("click", analyse);
+$("text-input").addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === "Enter") analyse();
+});
+
+async function postJSON(endpoint, text) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}));
+    throw new Error(detail.detail?.[0]?.msg || detail.detail || `${endpoint} returned ${res.status}`);
+  }
+  return res.json();
+}
+
+async function analyse() {
+  const text = $("text-input").value.trim();
+  const errBox = $("error-box");
+  errBox.classList.remove("show");
+
+  if (!text) {
+    errBox.textContent = "Enter some text first, then analyse.";
+    errBox.classList.add("show");
+    return;
+  }
+
+  const btn = $("analyse-btn");
+  btn.disabled = true;
+  btn.textContent = "Analysing…";
+
+  try {
+    const [analysis, keywords, summary] = await Promise.all([
+      postJSON("/analyze", text),
+      postJSON("/keywords", text),
+      postJSON("/summarize", text),
+    ]);
+    renderStats(analysis);
+    renderSentiment(analysis.sentiment);
+    renderAnnotated(text, keywords.entities);
+    renderKeywords(keywords.keywords);
+    renderSummary(summary);
+    $("empty-state").style.display = "none";
+    $("results").classList.add("show");
+  } catch (err) {
+    errBox.textContent = "Analysis failed: " + err.message;
+    errBox.classList.add("show");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Analyse text";
+  }
+}
+
+/* --- renderers ------------------------------------------------------ */
+
+function renderStats(a) {
+  $("stat-words").textContent = a.word_count;
+  $("stat-sents").textContent = a.sentence_count;
+  $("stat-flesch").textContent = a.flesch_reading_ease;
+  $("stat-level").textContent = a.reading_level;
+}
+
+function renderSentiment(s) {
+  $("sent-label").textContent = s.label;
+  $("sent-label").style.color =
+    s.label === "positive" ? "var(--pine)" :
+    s.label === "negative" ? "var(--neg)" : "var(--ink)";
+  $("sent-detail").textContent =
+    `polarity ${s.polarity.toFixed(2)} · subjectivity ${s.subjectivity.toFixed(2)}`;
+  // Map polarity [-1, 1] onto the track [0%, 100%].
+  $("scale-marker").style.left = ((s.polarity + 1) / 2) * 100 + "%";
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/* Highlight every entity occurrence in the original text.
+   Strategy: collect non-overlapping [start, end] ranges by searching for
+   each entity's surface form (longest first, so "Marie Curie" wins over
+   "Curie"), then rebuild the text with <mark> around those ranges. */
+function renderAnnotated(text, entities) {
+  const ranges = [];
+  const sorted = [...entities].sort((a, b) => b.text.length - a.text.length);
+
+  for (const ent of sorted) {
+    let from = 0, idx;
+    while ((idx = text.indexOf(ent.text, from)) !== -1) {
+      const overlaps = ranges.some(r => idx < r.end && idx + ent.text.length > r.start);
+      if (!overlaps) ranges.push({ start: idx, end: idx + ent.text.length, label: ent.label });
+      from = idx + ent.text.length;
+    }
+  }
+
+  ranges.sort((a, b) => a.start - b.start);
+  let html = "", cursor = 0;
+  for (const r of ranges) {
+    html += escapeHTML(text.slice(cursor, r.start));
+    html += `<mark>${escapeHTML(text.slice(r.start, r.end))}<span class="ent-label">${escapeHTML(r.label)}</span></mark>`;
+    cursor = r.end;
+  }
+  html += escapeHTML(text.slice(cursor));
+
+  $("annotated-text").innerHTML = html ||
+    "<em style='color:var(--muted)'>No named entities found in this text.</em>";
+}
+
+function renderKeywords(keywords) {
+  const chips = keywords.slice(0, 14).map((k, i) =>
+    `<span class="chip${i < 3 ? " top" : ""}">${escapeHTML(k)}</span>`
+  ).join("");
+  $("keyword-chips").innerHTML = chips ||
+    "<em style='color:var(--muted)'>No keywords extracted.</em>";
+}
+
+function renderSummary(s) {
+  $("summary-text").textContent = s.summary;
+  $("summary-meta").textContent =
+    `${s.sentence_count_summary} of ${s.sentence_count_original} sentences selected`;
+}
+</script>
+</body>
+</html>
