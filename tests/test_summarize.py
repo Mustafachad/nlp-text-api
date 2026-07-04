@@ -35,13 +35,8 @@ def test_summarize_empty_text_rejected(client):
     assert response.status_code == 422
 
 
-def test_summarize_whitespace_only_treated_as_single_empty_sentence(client):
-    # spaCy parses whitespace-only input as one (empty) sentence, so this
-    # hits the single-sentence branch and returns 200 with an empty summary
-    # rather than a validation error. Same known inconsistency as /keywords.
+def test_summarize_whitespace_only_rejected(client):
     response = client.post("/summarize", json={"text": "   "})
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["sentence_count_original"] == 1
-    assert body["summary"] == ""
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Text must not be empty."

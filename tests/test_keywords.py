@@ -18,12 +18,8 @@ def test_keywords_empty_text_rejected(client):
     assert response.status_code == 422
 
 
-def test_keywords_whitespace_only_returns_empty_results(client):
-    # Unlike /analyze and /summarize, /keywords never checks for
-    # blank-after-strip input -- spaCy just finds no nouns/entities in
-    # whitespace, so this returns 200 with empty lists rather than a 422.
-    # This inconsistency is a known gap.
+def test_keywords_whitespace_only_rejected(client):
     response = client.post("/keywords", json={"text": "   "})
 
-    assert response.status_code == 200
-    assert response.json() == {"keywords": [], "entities": []}
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Text must not be empty."

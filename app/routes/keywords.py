@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from app.models import TextRequest, KeywordsResponse, Entity
 from app.nlp import nlp
 
@@ -19,7 +19,12 @@ def extract_keywords(request: TextRequest):
     - **entities** — named entities recognised by spaCy's NER model, filtered to
       people, organisations, places, products, and events.
     """
-    doc = nlp(request.text)
+    text = request.text.strip()
+
+    if not text:
+        raise HTTPException(status_code=422, detail="Text must not be empty.")
+
+    doc = nlp(text)
 
     # --- Keywords ---
     # We treat nouns (NOUN) and proper nouns (PROPN) as content words.
