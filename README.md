@@ -4,6 +4,10 @@ A REST API that performs natural language processing on text input. Built with F
 
 ## Features
 
+A single-page web UI at `/` calls all three analysis endpoints in parallel
+and renders sentiment, readability, annotated entities, keywords, and the
+summary side by side.
+
 | Endpoint | What it does |
 |---|---|
 | `GET /health` | Service liveness check — status and version |
@@ -24,15 +28,22 @@ A REST API that performs natural language processing on text input. Built with F
 
 ```
 nlp-text-api/
+├── .github/
+│   └── workflows/
+│       └── tests.yml    # CI: installs deps and runs pytest on every push/PR
 ├── app/
-│   ├── main.py          # FastAPI app setup, router registration
+│   ├── main.py          # FastAPI app setup, router registration, serves the UI
 │   ├── nlp.py           # Shared spaCy model instance (loaded once)
 │   ├── models.py        # Pydantic request/response schemas
-│   └── routes/
-│       ├── health.py    # GET  /health
-│       ├── analyze.py   # POST /analyze
-│       ├── keywords.py  # POST /keywords
-│       └── summarize.py # POST /summarize
+│   ├── routes/
+│   │   ├── health.py    # GET  /health
+│   │   ├── analyze.py   # POST /analyze
+│   │   ├── keywords.py  # POST /keywords
+│   │   └── summarize.py # POST /summarize
+│   └── static/
+│       └── index.html   # Single-page web UI (vanilla JS, no build step)
+├── tests/                # pytest suite covering all four endpoints
+├── Dockerfile
 ├── requirements.txt
 └── .gitignore
 ```
@@ -66,7 +77,31 @@ uvicorn app.main:app --reload
 
 The server starts at `http://127.0.0.1:8000`.
 
-Interactive API docs (Swagger UI) are auto-generated at `http://127.0.0.1:8000/docs`.
+The web UI is served at `/`. Interactive API docs (Swagger UI) are
+auto-generated at `http://127.0.0.1:8000/docs`.
+
+## Running with Docker
+
+```bash
+docker build -t nlp-text-api .
+docker run -p 8000:8000 nlp-text-api
+```
+
+The UI and API are then available at `http://127.0.0.1:8000` exactly as
+in local development.
+
+## Running Tests
+
+```bash
+source venv/bin/activate
+pip install pytest   # already in requirements.txt
+pytest
+```
+
+Tests use FastAPI's `TestClient` and live in `tests/`, with one file per
+endpoint plus shared request-validation tests. A GitHub Actions workflow
+(`.github/workflows/tests.yml`) runs the suite on every push and pull
+request to `main`.
 
 ## Example Requests
 
@@ -80,15 +115,15 @@ curl -X POST http://127.0.0.1:8000/analyze \
 
 ```json
 {
-  "word_count": 14,
+  "word_count": 12,
   "sentence_count": 2,
   "sentiment": {
-    "polarity": 0.525,
-    "subjectivity": 0.65,
+    "polarity": 0.6333,
+    "subjectivity": 0.85,
     "label": "positive"
   },
-  "flesch_reading_ease": 58.3,
-  "reading_level": "Fairly Difficult"
+  "flesch_reading_ease": 87.95,
+  "reading_level": "Easy"
 }
 ```
 
@@ -102,7 +137,7 @@ curl -X POST http://127.0.0.1:8000/keywords \
 
 ```json
 {
-  "keywords": ["musk", "california", "cost", "space", "transportation"],
+  "keywords": ["elon", "musk", "spacex", "california", "cost", "space", "transportation"],
   "entities": [
     {"text": "Elon Musk", "label": "PERSON"},
     {"text": "California", "label": "GPE"}
