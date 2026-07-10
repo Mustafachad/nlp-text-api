@@ -16,7 +16,10 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from app.rate_limit import limiter
 from app.routes import health, analyze, keywords, summarize
 
 app = FastAPI(
@@ -24,6 +27,14 @@ app = FastAPI(
     description="REST API for natural language processing tasks built with FastAPI and spaCy.",
     version="1.0.0",
 )
+
+# --- Rate limiting ---
+# The three NLP endpoints run spaCy/TextBlob, which is CPU-bound — without a
+# limit, a single client could script enough requests to slow the service
+# down for everyone else (this matters once the app is publicly deployed).
+# Limits are keyed by client IP and applied per-route in app/routes/.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Register route modules.
 # Each router groups related endpoints under a shared prefix/tag.

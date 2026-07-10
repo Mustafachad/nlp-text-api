@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from app.models import TextRequest, KeywordsResponse, Entity
 from app.nlp import nlp
+from app.rate_limit import limiter
 
 router = APIRouter()
 
@@ -10,7 +11,8 @@ _ENTITY_TYPES = {"PERSON", "ORG", "GPE", "LOC", "PRODUCT", "EVENT"}
 
 
 @router.post("/keywords", response_model=KeywordsResponse, tags=["NLP"])
-def extract_keywords(request: TextRequest):
+@limiter.limit("20/minute")
+def extract_keywords(request: Request, payload: TextRequest):
     """
     Extracts keywords and named entities from the submitted text.
 
@@ -19,7 +21,7 @@ def extract_keywords(request: TextRequest):
     - **entities** — named entities recognised by spaCy's NER model, filtered to
       people, organisations, places, products, and events.
     """
-    text = request.text.strip()
+    text = payload.text.strip()
 
     if not text:
         raise HTTPException(status_code=422, detail="Text must not be empty.")

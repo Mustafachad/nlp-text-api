@@ -26,6 +26,7 @@ summary side by side.
 - **TextBlob** — sentiment analysis (polarity and subjectivity scoring)
 - **textstat** — Flesch Reading Ease score
 - **Pydantic** — request/response schema validation
+- **slowapi** — per-IP rate limiting on the NLP endpoints
 - **Uvicorn** — ASGI server
 
 ## Project Structure
@@ -33,20 +34,22 @@ summary side by side.
 ```
 nlp-text-api/
 ├── .github/
-│   └── workflows/
-│       └── tests.yml    # CI: installs deps and runs pytest on every push/PR
+│   ├── workflows/
+│   │   └── tests.yml     # CI: installs deps and runs pytest on every push/PR
+│   └── dependabot.yml    # Weekly checks for vulnerable pip/Actions dependencies
 ├── app/
-│   ├── main.py          # FastAPI app setup, router registration, serves the UI
-│   ├── nlp.py           # Shared spaCy model instance (loaded once)
-│   ├── models.py        # Pydantic request/response schemas
+│   ├── main.py           # FastAPI app setup, router registration, serves the UI
+│   ├── nlp.py            # Shared spaCy model instance (loaded once)
+│   ├── models.py         # Pydantic request/response schemas
+│   ├── rate_limit.py     # Shared slowapi Limiter instance
 │   ├── routes/
-│   │   ├── health.py    # GET  /health
-│   │   ├── analyze.py   # POST /analyze
-│   │   ├── keywords.py  # POST /keywords
-│   │   └── summarize.py # POST /summarize
+│   │   ├── health.py     # GET  /health
+│   │   ├── analyze.py    # POST /analyze   (rate limited: 20/min per IP)
+│   │   ├── keywords.py   # POST /keywords  (rate limited: 20/min per IP)
+│   │   └── summarize.py  # POST /summarize (rate limited: 20/min per IP)
 │   └── static/
-│       └── index.html   # Single-page web UI (vanilla JS, no build step)
-├── tests/                # pytest suite covering all four endpoints
+│       └── index.html    # Single-page web UI (vanilla JS, no build step)
+├── tests/                 # pytest suite covering all endpoints + rate limiting
 ├── Dockerfile
 ├── requirements.txt
 ├── LICENSE
@@ -175,6 +178,13 @@ curl -X POST http://127.0.0.1:8000/summarize \
 **Keywords** — spaCy's POS tagger identifies nouns and proper nouns. Stop words are filtered out and tokens are lemmatised (`"APIs" → "api"`) before frequency ranking, so surface form variation doesn't split counts.
 
 **Summarisation** — Each sentence is scored by summing the normalised frequencies of its content words. The top-ranked sentences (roughly one-third of the original, capped at 7) are returned in their original order so the summary reads naturally. This is *extractive* summarisation — no text is generated, only selected.
+
+## Security
+
+- **Rate limiting** — `/analyze`, `/keywords`, and `/summarize` are limited to 20 requests/minute per IP ([slowapi](https://github.com/laurentS/slowapi)). These endpoints run spaCy and TextBlob, which are CPU-bound, so an unbounded client could otherwise degrade the service for everyone else.
+- **Input limits** — request text is capped at 20,000 characters (`Field(max_length=20_000)` in `app/models.py`) so a single oversized request can't tie up a worker.
+- **Dependency scanning** — [Dependabot](.github/dependabot.yml) checks weekly for known vulnerabilities in both pip packages and the GitHub Actions used in CI.
+- **No secrets or user data storage** — the API is stateless; nothing submitted is persisted or logged beyond standard request logs.
 
 ## License
 

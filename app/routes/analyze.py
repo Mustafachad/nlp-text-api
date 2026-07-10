@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from textblob import TextBlob
 import textstat
 
 from app.models import TextRequest, AnalyzeResponse, Sentiment
+from app.rate_limit import limiter
 
 router = APIRouter()
 
@@ -51,7 +52,8 @@ def _sentiment_label(polarity: float) -> str:
 
 
 @router.post("/analyze", response_model=AnalyzeResponse, tags=["NLP"])
-def analyze_text(request: TextRequest):
+@limiter.limit("20/minute")
+def analyze_text(request: Request, payload: TextRequest):
     """
     Analyses the submitted text and returns:
     - **sentiment** — polarity, subjectivity, and a plain-English label (TextBlob)
@@ -59,7 +61,7 @@ def analyze_text(request: TextRequest):
     - **reading_level** — plain-English label for the Flesch score
     - **word_count** and **sentence_count** — basic text statistics
     """
-    text = request.text.strip()
+    text = payload.text.strip()
 
     if not text:
         raise HTTPException(status_code=422, detail="Text must not be empty.")
