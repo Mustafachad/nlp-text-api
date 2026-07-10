@@ -28,7 +28,7 @@ numpy==2.5.0
 packaging==26.2
 preshed==3.0.13
 pydantic==2.13.4
-pydantic_core==2.46.4
+pydantic_core==2.47.0
 Pygments==2.20.0
 pyphen==0.17.2
 pytest==9.1.1
