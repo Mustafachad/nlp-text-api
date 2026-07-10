@@ -21,5 +21,8 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Download NLTK corpora
+        run: python -m nltk.downloader cmudict punkt punkt_tab
+
       - name: Run tests
         run: pytest
