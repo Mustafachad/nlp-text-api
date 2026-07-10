@@ -27,5 +27,8 @@ EXPOSE 8000
 
 # Start the API server.
 # --host 0.0.0.0 makes it reachable from outside the container (not just localhost).
-# --workers 2 runs two parallel processes so concurrent requests don't queue.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# --workers 1: each worker loads its own copy of spaCy (~160MB), so a single
+# worker keeps the memory footprint within free-tier hosting limits (e.g.
+# Render's 512MB cap). CPU-bound requests queue briefly under this worker
+# instead of running in parallel — an acceptable tradeoff for low-traffic use.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
