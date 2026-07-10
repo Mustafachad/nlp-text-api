@@ -24,7 +24,7 @@ MarkupSafe==3.0.3
 mdurl==0.1.2
 murmurhash==1.0.15
 nltk==3.9.4
-numpy==2.5.0
+numpy==2.5.1
 packaging==26.2
 preshed==3.0.13
 pydantic==2.13.4
