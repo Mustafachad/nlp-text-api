@@ -11,11 +11,15 @@ class HealthResponse(BaseModel):
     service: str
 
 
-@router.get("/health", response_model=HealthResponse, tags=["Health"])
+@router.api_route(
+    "/health", methods=["GET", "HEAD"], response_model=HealthResponse, tags=["Health"]
+)
 def health_check():
     """
     Returns the current status and version of the API.
     Used by load balancers and monitoring tools to confirm the service is up.
+    Accepts HEAD as well as GET since some health checkers use HEAD to avoid
+    transferring a response body.
     """
     return HealthResponse(
         status="ok",

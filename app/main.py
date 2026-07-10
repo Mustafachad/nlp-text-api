@@ -53,7 +53,12 @@ _STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=_STATIC_DIR), name="static")
 
 
-@app.get("/", include_in_schema=False)
+@app.api_route("/", methods=["GET", "HEAD"], include_in_schema=False)
 def serve_ui() -> FileResponse:
-    """Serves the web UI."""
+    """Serves the web UI.
+
+    Accepts HEAD as well as GET — hosting platforms (e.g. Render) probe
+    the root path with HEAD to check the service is up before routing
+    traffic to it.
+    """
     return FileResponse(_STATIC_DIR / "index.html")
