@@ -1,5 +1,9 @@
 # NLP Text Analysis API
 
+[![Tests](https://github.com/Mustafachad/nlp-text-api/actions/workflows/tests.yml/badge.svg)](https://github.com/Mustafachad/nlp-text-api/actions/workflows/tests.yml)
+![Python](https://img.shields.io/badge/python-3.13-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 A REST API that performs natural language processing on text input. Built with FastAPI and spaCy as a portfolio project connecting an Applied Linguistics background to practical software engineering.
 
 ## Features
@@ -45,6 +49,7 @@ nlp-text-api/
 ├── tests/                # pytest suite covering all four endpoints
 ├── Dockerfile
 ├── requirements.txt
+├── LICENSE
 └── .gitignore
 ```
 
@@ -170,6 +175,10 @@ curl -X POST http://127.0.0.1:8000/summarize \
 **Keywords** — spaCy's POS tagger identifies nouns and proper nouns. Stop words are filtered out and tokens are lemmatised (`"APIs" → "api"`) before frequency ranking, so surface form variation doesn't split counts.
 
 **Summarisation** — Each sentence is scored by summing the normalised frequencies of its content words. The top-ranked sentences (roughly one-third of the original, capped at 7) are returned in their original order so the summary reads naturally. This is *extractive* summarisation — no text is generated, only selected.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ## Related Projects
 
