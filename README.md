@@ -1,5 +1,8 @@
 # NLP Text Analysis API
 
+**Live demo:** [nlp-text-api.onrender.com](https://nlp-text-api.onrender.com) — try the endpoints directly in [Swagger UI](https://nlp-text-api.onrender.com/docs).
+> Hosted on Render's free tier, which spins down after periods of inactivity — the first request after idle time may take 30–60s to wake it up.
+
 [![Tests](https://github.com/Mustafachad/nlp-text-api/actions/workflows/tests.yml/badge.svg)](https://github.com/Mustafachad/nlp-text-api/actions/workflows/tests.yml)
 ![Python](https://img.shields.io/badge/python-3.13-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
