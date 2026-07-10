@@ -1,12 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from app.models import TextRequest, SummarizeResponse
 from app.nlp import nlp
+from app.rate_limit import limiter
 
 router = APIRouter()
 
 
 @router.post("/summarize", response_model=SummarizeResponse, tags=["NLP"])
-def summarize_text(request: TextRequest):
+@limiter.limit("20/minute")
+def summarize_text(request: Request, payload: TextRequest):
     """
     Returns an extractive summary of the submitted text.
 
@@ -24,7 +26,7 @@ def summarize_text(request: TextRequest):
     Summary length: roughly one-third of the original sentence count,
     clamped to a minimum of 1 and a maximum of 7 sentences.
     """
-    text = request.text.strip()
+    text = payload.text.strip()
 
     if not text:
         raise HTTPException(status_code=422, detail="Text must not be empty.")

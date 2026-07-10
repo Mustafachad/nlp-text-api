@@ -1,0 +1,13 @@
+version: 2
+updates:
+  # Python dependencies (FastAPI, spaCy, TextBlob, slowapi, etc.)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  # GitHub Actions used in .github/workflows/
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
