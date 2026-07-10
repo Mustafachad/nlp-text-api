@@ -1,0 +1,12 @@
+venv/
+.git/
+.github/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+.vscode/
+.idea/
+.DS_Store
+*.md
+LICENSE
