@@ -185,6 +185,11 @@ curl -X POST http://127.0.0.1:8000/summarize \
 
 **Summarisation** — Each sentence is scored by summing the normalised frequencies of its content words. The top-ranked sentences (roughly one-third of the original, capped at 7) are returned in their original order so the summary reads naturally. This is *extractive* summarisation — no text is generated, only selected.
 
+## Known Limitations
+
+- **English only.** spaCy's `en_core_web_sm` model, TextBlob's sentiment analyzer, and the Flesch Reading Ease formula are all English-specific. Non-English input won't raise an error — it'll silently produce a wrong result (mistagged entities, an inaccurate sentiment score, a meaningless readability number), since nothing in the pipeline detects or validates input language.
+- **Frequency-based summarisation is length-driven on short, low-repetition text.** The scorer normalises word frequencies, so on a short passage where every content word appears exactly once, every word gets equal weight — sentence score collapses to "how many content words does this sentence have" rather than any measure of thematic importance. When two sentences tie, the earlier one in the text wins, which is a positional tiebreak, not a semantic judgment. This becomes less noticeable on longer text, where real word repetition gives the frequency signal something meaningful to rank on.
+
 ## Security
 
 - **Rate limiting** — `/analyze`, `/keywords`, and `/summarize` are limited to 20 requests/minute per IP ([slowapi](https://github.com/laurentS/slowapi)). These endpoints run spaCy and TextBlob, which are CPU-bound, so an unbounded client could otherwise degrade the service for everyone else.
