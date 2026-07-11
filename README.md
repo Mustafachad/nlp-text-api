@@ -77,6 +77,9 @@ pip install -r requirements.txt
 
 # Download the spaCy English model
 python -m spacy download en_core_web_sm
+
+# Download the NLTK corpora TextBlob needs for sentiment/tokenization
+python -m nltk.downloader cmudict punkt punkt_tab
 ```
 
 ## Running the API
